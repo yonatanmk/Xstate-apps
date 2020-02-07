@@ -1,10 +1,39 @@
-import React from 'react';
-import './App.css';
+import React from "react";
+import { useMachine } from "@xstate/react";
+import { Machine } from "xstate";
+
+const toggleMachine = new Machine({
+  id: "toggleMachine",
+  initial: "inactive",
+  states: {
+    inactive: {
+      on: {
+        TOGGLE: "active"
+      }
+    },
+    active: {
+      on: {
+        TOGGLE: "inactive"
+      }
+    }
+  }
+});
 
 function App() {
+  const [current, send] = useMachine(toggleMachine);
+
   return (
-    <div className="App">
-      <p>Hello World</p>
+    <div>
+      <button
+        onClick={() => {
+          send("TOGGLE");
+        }}
+      >
+        Toggle
+      </button>
+
+      {current.matches("active") && <span>We are active</span>}
+      {current.matches("inactive") && <span>We are inactive</span>}
     </div>
   );
 }
