@@ -17,6 +17,7 @@ const dataMachine = new Machine({
         id: "dataLoader",
         src: (context, _event) => {
           return (callback, _onEvent) => {
+            // simulate fetch
             setTimeout(() => {
               const { data } = context;
               const newData = allData.slice(data.length, data.length + perPage);
@@ -35,6 +36,7 @@ const dataMachine = new Machine({
         DONE_MORE: {
           target: "more",
           actions: assign({
+            // data: (context, event) => [...context.data, ...event.newData]
             data: ({ data }, { newData = [] }) => [...data, ...newData]
           })
         },
