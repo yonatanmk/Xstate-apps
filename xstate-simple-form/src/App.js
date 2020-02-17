@@ -1,6 +1,7 @@
 import React from 'react';
 import { Machine, assign } from "xstate";
 import { useMachine } from "@xstate/react";
+import { apiCall } from './utils'
 
 const formMachine = Machine({
   initial: "editing",
@@ -19,10 +20,23 @@ const formMachine = Machine({
             password: (ctx, e) => e.password || ctx.password,
           })
         },
-        SUBMIT: "submitted"
+        SUBMIT: "loading"
       },
     },
-    submitted: {
+    loading: {
+      invoke: {
+        id: "submitting",
+        src: ctx => apiCall(ctx),
+        onDone: "success",
+        onError: "failure"
+      }
+    },
+    failure: {
+      on: {
+        SUBMIT: "loading"
+      },
+    },
+    success: {
       type: "final"
     },
   },
@@ -30,20 +44,30 @@ const formMachine = Machine({
 
 
 function App() {
-  const [current, send] = useMachine(formMachine)
+  const [current, send] = useMachine(formMachine, {
+    actions: {
+      loading: ctx => apiCall(...ctx)
+    }
+  });
+
   const { name, email, password } = current.context;
 
   const invalid = false;
-  const submitted = current.matches("submitted");
+  const editing = current.matches("editing");
+  const loading = current.matches("loading");
+  const failure = current.matches("failure");
+  const success = current.matches("success");
+
+  const submit = e => {
+    e.preventDefault();
+    send("SUBMIT");
+  }
+
+  // apiCall('a')
 
   return (
     <div className="App">
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          send("SUBMIT");
-        }}
-      >
+      {editing && <form onSubmit={submit}>
         <h3>Sign Up</h3>
         {invalid ? <div className="error">Sorry, that's invalid.</div> : null}
         <div className="formblock">
@@ -71,12 +95,22 @@ function App() {
             onChange={e => send("CHANGE", { password: e.target.value })}
           />
         </div>
-        {!submitted && <button data-testid="save-button">
+        <button data-testid="save-button">
           Save
-        </button>}
-      </form>
-      {submitted && (
+        </button>
+      </form>}
+      {loading && <h1>LOADING</h1>}
+      {failure && (
         <div>
+          <h1>FAILURE TRY AGAIN</h1>
+          <button onClick={submit}>
+            Save
+          </button>
+        </div>
+      )}
+      {success && (
+        <div>
+          <h1>SUCCESS</h1>
           <p>Name: {name}</p>
           <p>Email: {email}</p>
           <p>Password: {password}</p>
